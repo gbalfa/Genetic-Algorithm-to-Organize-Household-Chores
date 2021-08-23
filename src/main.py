@@ -1,16 +1,21 @@
 import guided_creep_mutation as gcm
+from file_handler import arrangeSchedules, readCSV
 
+week_days = 6
 # Representation of availability in time slots P X (D X T)
-availability = [[0, 1, 1, 0 , 0, 0], [0, 0, 1, 1, 0, 0]]
-p = 2
+schedules = arrangeSchedules(readCSV("data/schedules.csv"), week_days)
+p = len(schedules)
 
-# House chores (recurrence/week)
-house_chores = [['Limpiar baño', 2], ['Barrer patio', 2], ['Limpiar vidrios', 1]]
+# Chores (recurrence/week)
+# chores = [['Limpiar baño', 2], ['Barrer patio', 2], ['Limpiar vidrios', 3]]
+chores = readCSV("data/chores.csv")
+print(chores)
+print(schedules)
 
 # DTP
-varbound = [[1, 6], [1, 6], [1, p]]
+# varbound = [[1, 6], [1, 6], [1, p]]
 
-# model run
-gcm.ga(dimension=3, varbound=varbound, availability=availability, house_chores=house_chores)
+# # model run
+# gcm.ga(dimension=3, varbound=varbound, schedules=schedules, house_chores=house_chores)
 
 

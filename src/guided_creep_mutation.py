@@ -1,38 +1,12 @@
 # versión 0.0
 
 import random
+from math import floor, ceil
+import file_handler
 
 
-def print_timetable(house_chores, chromosome):
-    weekDays = ("Monday              ","Tuesday             ","Wednesday           ","Thursday            ","Friday              ","Saturday            ")
-    for elem in weekDays:
-        print(elem, ' | ', end='')
-    print()
-    i = 0
-    while i < 6: # time slots per day
-        j = 0
-        while j < 6: # week days
-            flag = False
-            k = 0
-            while k < len(chromosome):
-                if chromosome[k][0] == j + 1 and chromosome[k][1] == i + 1:
-                    flag = True
-                    chore_name = house_chores[k % 2][0]
-                    p = chromosome[k][2]
-                k = k + 1
-            if flag:
-                if len(chore_name) < 20:
-                    chore_name = chore_name + ' ' + str(p) + ' '  + (17 - len(chore_name)) * ' '
-                print(chore_name, ' | ', end='')
-            else:
-                print('                    ', ' | ', end='')
-            j = j + 1
-        print()
-        i = i + 1
-
-            
 # Comment structure: # $Restriction # $Involved_variables
-def fitness(chromosome, n_people):
+def fitness(chromosome, n_people, n_tareas):
     constraints = []
     cost = 0
     people = [0] * n_people
@@ -41,7 +15,8 @@ def fitness(chromosome, n_people):
         p = chromosome[i][2]
         people[p - 1] = people[p - 1] + 1 
         i = i + 1
-    if max(people) > 2:
+    if max(people) > ceil(n_tareas/n_people): # HC1: distribución equitativa de tareas
+        # print(max(people), floor(n_tareas/n_people))
         cost = cost + 100
         constraints.append(1)
     
@@ -55,7 +30,8 @@ def guided_creep_mutation(population, fitResult, n_people):
         constraints = fitResult[chromosome][0]
         for chore in population[chromosome]:
             person_changed = False
-            
+
+            # Mutación según restricción violada
             if 1 in constraints: # HC1 #P
                 r = random.random()
                 if r < 0.5:
@@ -85,11 +61,16 @@ def ga(dimension, varbound, availability, house_chores):
         population.append(chromosome)
     # Fitness evaluation
     n_people = len(availability)
-    fitResult = [fitness(p, n_people) for p in population]
+    n_chores = sum(x[1] for x in house_chores)
+    # print(n_chores, n_people)
+    fitResult = [fitness(p, n_people, n_chores) for p in population]
     # Mutation
     #print(fitResult)
     guided_creep_mutation(population, fitResult, n_people)
-    fitResult = [fitness(p, n_people) for p in population]
+    fitResult = [fitness(p, n_people, n_chores) for p in population]
+    print(fitResult)
+    guided_creep_mutation(population, fitResult, n_people)
+    fitResult = [fitness(p, n_people, n_chores) for p in population]
     print(fitResult)
     best = fitResult.index(min(fitResult, key = lambda x: x[1]))
     print_timetable(house_chores, population[best])
