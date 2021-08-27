@@ -30,7 +30,8 @@ def readCSV(filename):
     return rows
 
 def arrangeSchedules(rows, n_time_slots):
-    chunks = [rows[x:x+n_time_slots] for x in range(0, len(rows), n_time_slots)]
+    # slots = [x for l in rows for x in l]
+    chunks = [[y for l in rows[x:x+n_time_slots] for y in l] for x in range(0, len(rows), n_time_slots)]
     return chunks
 
 # csv_rows = readCSV("data/availability.csv")
