@@ -1,25 +1,25 @@
 # versión 0.0
 
 import numpy as np
-from geneticalgorithm import geneticalgorithm as ga
+from myga import geneticalgorithm as ga
 import data_generation
 from file_handler import arrangeSchedules, readCSV
 from math import ceil, floor, log2
 import copy
 
-n_week_days = 1
-n_time_slots_day = 2
-n_people = 2
+n_week_days = 4
+n_time_slots_day = 8
+n_people = 8
 
-n_chores = 2
+n_chores = 32
 max_frecuency = 1
 max_priority = 3
 
 n_time_slots = n_week_days * n_time_slots_day
 
 # Data generation
-# data_generation.generateScheduleData("data/schedules.csv", n_people, n_week_days, n_time_slots_day)
-# data_generation.generateChoreData("data/chores.csv", n_chores, max_frecuency, max_priority)
+data_generation.generateScheduleData("data/schedules.csv", n_people, n_week_days, n_time_slots_day)
+data_generation.generateChoreData("data/chores.csv", n_chores, max_frecuency, max_priority)
 
 # Representation of availability in time slots P X D X T 
 schedules = arrangeSchedules(readCSV("data/schedules.csv"), n_week_days)
@@ -52,18 +52,18 @@ def f(X):
     i = 0
     event = 0
     while i < dimension:
-        enc_tSlot = X[0:size_enc_tSlot]
-        enc_person = X[size_enc_tSlot:size_enc_tSlot + size_enc_person]
-        print(enc_tSlot, enc_person)
+        enc_tSlot = X[i: (i + size_enc_tSlot)]
+        enc_person = X[(i + size_enc_tSlot):(i + size_enc_tSlot + size_enc_person)]
 
         # decode
         dec_tSlot = np.int_(enc_tSlot.dot(2**np.arange(size_enc_tSlot)[::-1]))
         dec_person = np.int_(enc_person.dot(2**np.arange(size_enc_person)[::-1]))
 
-        # print(dec_tSlot, dec_person)
+        # invalid configurations
+        if dec_tSlot >= n_time_slots or dec_person >= n_people:
+            return 10000
 
         if local_schedules[dec_person][dec_tSlot] == 0: # HC0
-            # print(dec_tSlot, dec_person, local_schedules)
             cost += costs_hcs[0] 
         else:
             local_schedules[dec_person][dec_tSlot] = 0
@@ -72,13 +72,22 @@ def f(X):
         event = event + 1
         i = i + size_event_chunk
 
-    # if max(events_per_person) > ceil(n_chores/n_people): # HC1
-    #     cost += costs_hcs[1]
+    if max(events_per_person) > ceil(1.5 * (n_chores/n_people)): # HC1
+        cost += costs_hcs[1]
 
     return cost
 
+algorithm_param = {'max_num_iteration': 1000,\
+                   'population_size':100,\
+                   'mutation_probability':0.1,\
+                   'elit_ratio': 0.01,\
+                   'crossover_probability': 0.5,\
+                   'parents_portion': 0.3,\
+                   'crossover_type':'uniform',\
+                   'max_iteration_without_improv':None}
+
 # model
-model=ga(function=f,dimension=dimension,variable_type='bool')
+model=ga(function=f,dimension=dimension,variable_type='bool', algorithm_parameters=algorithm_param)
 
 model.run()
 # print(model.param)
