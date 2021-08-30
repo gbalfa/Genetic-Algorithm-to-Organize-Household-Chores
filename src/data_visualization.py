@@ -2,35 +2,64 @@
 Data visualization
 """
 
+import seaborn as sns
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 
-def print_timetable(house_chores, chromosome):
-    weekDays = ("Monday              ","Tuesday             ","Wednesday           ","Thursday            ","Friday              ","Saturday            ")
-    for elem in weekDays:
-        print(elem, ' | ', end='')
-    print()
-    lista_nombres = []
-    i = 0
-    while i < 6: # time slots per day
-        j = 0
-        while j < 6: # week days
-            flag = False
-            k = 0
-            while k < len(chromosome):
-                if chromosome[k][0] == j + 1 and chromosome[k][1] == i + 1:
-                    flag = True
-                    lista_nombres.append(house_chores[k % len(house_chores)][0])
-                    chore_name = house_chores[k % len(house_chores)][0]
-                    p = chromosome[k][2]
-                k = k + 1
-            if flag:
-                if len(chore_name) < 20:
-                    chore_name = chore_name + ' ' + str(p) + ' '  + (17 - len(chore_name)) * ' '
-                print(chore_name, ' | ', end='')
-            else:
-                print('                    ', ' | ', end='')
-            j = j + 1
-        print()
-        i = i + 1
-    print(lista_nombres)
 
-            
+def greatestMultipleOf(x, n):
+    day = 0
+    i = 1
+    m = x * i
+    while m <= n:
+        day += 1
+        i += 1
+        m = x * i
+    return day
+
+
+def heatMapsFromCromosome(X, n_week_days, n_time_slots_day, size_event_chunk, schedule_fields, schedules):
+    rows = []
+    events_per_person = [0] * len(schedules)
+    week_days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat']
+    # decode [timeSlot, persona] => [weekday, slot]
+    for i in range(0, len(X), size_event_chunk):
+        timeSlot = X[i]
+        person = X[i + 1]
+        events_per_person[int(person)] += 1
+        rows.append([greatestMultipleOf(n_time_slots_day, timeSlot),
+                    timeSlot % n_time_slots_day])
+    matrix = np.zeros((n_week_days, n_time_slots_day))
+    for elem in rows:
+        matrix[int(elem[0])][int(elem[1])] += 1
+
+    # disponibilidad
+    schedules_sum = [0] * n_week_days * n_time_slots_day
+    for schedule in schedules:
+        for i_timeSlot in range(len(schedule)):
+            if schedule[i_timeSlot]:
+                schedules_sum[i_timeSlot] += 1
+
+    mtx_schedules = np.zeros((n_week_days, n_time_slots_day))
+
+    for i_timeSlot in range(len(schedules_sum)):
+        mtx_schedules[greatestMultipleOf(
+            n_time_slots_day, i_timeSlot)][i_timeSlot % n_time_slots_day] += schedules_sum[i_timeSlot]
+
+    df1 = pd.DataFrame(matrix, columns=schedule_fields,
+                       index=week_days[:n_week_days])
+    df2 = pd.DataFrame(mtx_schedules, columns=schedule_fields,
+                       index=week_days[:n_week_days])
+    data_events_per_person = {'personas': [str(i) for i in range(
+        len(events_per_person))], 'cantidad eventos asignados': events_per_person}
+    df3 = pd.DataFrame(data_events_per_person)
+
+    f, axs = plt.subplots(1, 3)
+    sns.heatmap(df1, ax=axs[0]).set_title('Asignaciones de tareas')
+    sns.heatmap(df2, ax=axs[1]).set_title('Horarios disponibles')
+    sns.barplot(data=df3, x='personas',
+                y='cantidad eventos asignados', ax=axs[2])
+    f.tight_layout()
+    plt.show()
+    return rows
